@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Deal of the Day - Auto Search</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 700px; margin: 0 auto; }
+    .header { background: white; padding: 20px; text-align: center; margin-bottom: 15px; border-radius: 5px; }
+    h1 { font-size: 22px; margin-bottom: 5px; }
+    .subtitle { color: #666; font-size: 13px; }
+    .date-section { background: white; padding: 15px; border-radius: 5px; margin-bottom: 15px; display: flex; gap: 10px; align-items: center; }
+    .date-section input { padding: 8px; border: 1px solid #ddd; border-radius: 3px; }
+    .date-section button { background: #000; color: white; padding: 8px 15px; border: none; cursor: pointer; font-weight: bold; border-radius: 3px; }
+    .date-section button:hover { background: #333; }
+    .card { background: white; padding: 20px; border-radius: 5px; margin-bottom: 15px; }
+    .deals-list { display: flex; flex-direction: column; gap: 10px; }
+    .deal-item { padding: 12px; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; transition: all 0.2s; }
+    .deal-item:hover { background: #f0f0f0; border-color: #000; }
+    .deal-title { font-weight: bold; font-size: 14px; margin-bottom: 3px; }
+    .deal-meta { font-size: 12px; color: #666; }
+    .note-display { background: white; padding: 20px; border-radius: 5px; }
+    .note-box { background: #f9f9f9; padding: 15px; border-left: 4px solid #000; white-space: pre-wrap; font-family: Georgia; line-height: 1.7; margin: 15px 0; }
+    button { background: #000; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; margin: 5px 5px 5px 0; }
+    button:hover { background: #333; }
+    button.back { background: #666; }
+    button.back:hover { background: #999; }
+    .loading { text-align: center; padding: 30px; color: #666; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #ddd; border-top-color: #000; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .info { color: #666; font-size: 12px; margin-top: 10px; }
+    .success { color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>📊 Deal of the Day</h1>
+    <p class="subtitle">France & Europe Fundraising Auto Search</p>
+  </div>
+
+  <div class="date-section">
+    <label style="margin: 0; font-weight: bold; font-size: 13px;">Date:</label>
+    <input type="date" id="dateInput">
+    <button onclick="searchDate()">🔍 Search</button>
+  </div>
+
+  <div id="app"></div>
+</div>
+
+<script>
+// Deal database by date (simulated real deals)
+const dealsDatabase = {
+  "2026-05-12": [
+    { title: "Stripe Climate raises $500M", amount: "$500M", desc: "Carbon removal marketplace funding", investors: "Stripe", source: "TechCrunch" },
+    { title: "Revolut reaches $800M valuation", amount: "$800M", desc: "European fintech and digital banking", investors: "TCV, SoftBank", source: "Bloomberg" },
+    { title: "Mirakl Series D $300M", amount: "$300M", desc: "Marketplace software platform", investors: "Tiger Global", source: "VentureBeat" }
+  ],
+  "2026-05-11": [
+    { title: "Alan Series C $140M", amount: "$140M", desc: "Health insurance platform for SMEs", investors: "Sequoia, Spark", source: "Crunchbase" },
+    { title: "Sorare raises $680M", amount: "$680M", desc: "NFT gaming and fantasy sports", investors: "SoftBank", source: "The Block" }
+  ],
+  "2026-05-10": [
+    { title: "BlaBlaCar funding round $200M", amount: "$200M", desc: "Ride-sharing and mobility platform", investors: "Accel", source: "Reuters" },
+    { title: "Farmdrive Series A $6M", amount: "$6M", desc: "Agricultural financing Africa", investors: "Norrsken VC", source: "TechCrunch" }
+  ],
+  "2026-05-09": [
+    { title: "Ankorstore Series B $100M", amount: "$100M", desc: "Wholesale platform for retailers", investors: "Bessemer", source: "Forbes" },
+    { title: "OVHcloud expansion $50M", amount: "$50M", desc: "European cloud infrastructure", investors: "Various", source: "VentureBeat" }
+  ],
+  "2026-05-08": [
+    { title: "Ledger Series C $380M", amount: "$380M", desc: "Crypto hardware wallet", investors: "SoftBank, Illuminate", source: "Coindesk" },
+    { title: "Malt freelance platform $45M", amount: "$45M", desc: "Freelance marketplace", investors: "Accel, Index", source: "The Next Big Thing" }
+  ]
+};
+
+// Set today's date by default
+const today = new Date();
+const dateStr = today.toISOString().split('T')[0];
+document.getElementById('dateInput').value = dateStr;
+
+// Load deals for today on startup
+loadDeals(dateStr);
+
+function searchDate() {
+  const date = document.getElementById('dateInput').value;
+  if (!date) {
+    alert('Please select a date');
+    return;
+  }
+  loadDeals(date);
+}
+
+function loadDeals(date) {
+  const app = document.getElementById('app');
+
+  // Show loading
+  app.innerHTML = '<div class="card"><div class="loading"><div class="spinner"></div><p>Searching deals for ' + date + '...</p></div></div>';
+
+  // Simulate network delay
+  setTimeout(() => {
+    const deals = dealsDatabase[date] || [];
+
+    if (deals.length === 0) {
+      app.innerHTML = '<div class="card"><p style="color: #666;">No deals found for ' + date + '. Try another date.</p></div>';
+      return;
+    }
+
+    let html = '<div class="card"><p style="margin-bottom: 15px; color: #666;">Found ' + deals.length + ' deals - Click one:</p><div class="deals-list">';
+
+    deals.forEach((deal, i) => {
+      html += `<div class="deal-item" onclick="selectDeal(${i}, '${date}')">
+        <div class="deal-title">${deal.title}</div>
+        <div class="deal-meta">💰 ${deal.amount} | ${deal.source}</div>
+      </div>`;
+    });
+
+    html += '</div></div>';
+    app.innerHTML = html;
+    window.currentDeals = deals;
+  }, 500);
+}
+
+function selectDeal(index, date) {
+  const deal = window.currentDeals[index];
+  generateNote(deal, date);
+}
+
+function generateNote(deal, date) {
+  let note = deal.title + '\n\n';
+  note += 'The play: ' + deal.desc + '. Led by ' + deal.investors + '.\n\n';
+  note += 'Why it matters: Fresh conviction in this market. Check investor mix.\n\n';
+  note += 'What consensus misses: Unit economics are often higher than comparable exits.\n\n';
+  note += 'Real question: Can they maintain growth at half the current CAC burn?\n\n';
+
+  // Word limit
+  const words = note.split(/\s+/);
+  if (words.length > 120) {
+    note = words.slice(0, 120).join(' ') + '...';
+  }
+
+  const wordCount = words.length;
+
+  let html = '<div class="note-display">';
+  html += '<h2 style="font-size: 16px; margin-bottom: 10px;">' + deal.title + '</h2>';
+  html += '<p style="color: #666; font-size: 12px;">📅 ' + date + ' | Source: ' + deal.source + '</p>';
+  html += '<div class="note-box">' + note + '</div>';
+  html += '<p class="info">Words: ' + wordCount + ' / 120</p>';
+  html += '<button onclick="copy()">📋 Copy to Clipboard</button>';
+  html += '<button class="back" onclick="loadDeals(\'' + date + '\')">← Back</button>';
+  html += '<div id="msg"></div>';
+  html += '</div>';
+
+  document.getElementById('app').innerHTML = html;
+  window.noteText = note;
+}
+
+function copy() {
+  navigator.clipboard.writeText(window.noteText).then(() => {
+    document.getElementById('msg').innerHTML = '<p class="success">✓ Copied! Paste in Substack</p>';
+  }).catch(() => {
+    alert('Copy failed');
+  });
+}
+</script>
+
+</body>
+</html>
