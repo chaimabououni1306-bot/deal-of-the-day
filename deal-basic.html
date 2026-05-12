@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Deal Generator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .header { background: white; padding: 20px; text-align: center; margin-bottom: 20px; border-radius: 5px; }
+    h1 { font-size: 24px; margin-bottom: 5px; }
+    .subtitle { color: #666; font-size: 13px; }
+    .card { background: white; padding: 20px; border-radius: 5px; margin-bottom: 15px; }
+    label { display: block; margin: 15px 0 5px 0; font-weight: bold; font-size: 13px; }
+    input[type="date"], input[type="text"], textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; font-family: Arial; margin-bottom: 10px; }
+    button { background: #000; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; margin: 5px 5px 5px 0; }
+    button:hover { background: #333; }
+    button.secondary { background: #666; }
+    button.secondary:hover { background: #999; }
+    .note { background: #f9f9f9; padding: 15px; border-left: 4px solid #000; white-space: pre-wrap; font-family: Georgia; line-height: 1.7; margin: 15px 0; }
+    .info { color: #666; font-size: 12px; margin: 10px 0; }
+    .success { color: green; font-weight: bold; }
+    .error { background: #ffe0e0; color: #c00; padding: 10px; border-radius: 3px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>📊 Deal Generator</h1>
+    <p class="subtitle">France & Europe Fundraising</p>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size: 16px; margin-bottom: 15px;">Option 1: Enter Deal Manually</h2>
+
+    <label>Date</label>
+    <input type="date" id="date">
+
+    <label>Company Name</label>
+    <input type="text" id="company" placeholder="e.g., Stripe">
+
+    <label>Amount</label>
+    <input type="text" id="amount" placeholder="e.g., $500M">
+
+    <label>What they do</label>
+    <textarea id="desc" placeholder="e.g., Payment processing" style="height: 60px;"></textarea>
+
+    <button onclick="generateFromForm()">✨ Generate Note</button>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size: 16px; margin-bottom: 15px;">Option 2: Example Deals (France)</h2>
+    <p class="info">Click a deal below to generate a note:</p>
+
+    <button onclick="useDeal('Stripe', '$500M', 'Payment processing infrastructure')">Stripe - $500M</button>
+    <button onclick="useDeal('BlaBlaCar', '$100M', 'Ride-sharing platform')">BlaBlaCar - $100M</button>
+    <button onclick="useDeal('OVHcloud', '$50M', 'Cloud computing')">OVHcloud - $50M</button>
+    <button onclick="useDeal('Mirakl', '$200M', 'Marketplace platform')">Mirakl - $200M</button>
+    <button onclick="useDeal('Sorare', '$680M', 'NFT gaming')">Sorare - $680M</button>
+  </div>
+
+  <div id="output"></div>
+</div>
+
+<script>
+  // Set today's date
+  document.getElementById('date').valueAsDate = new Date();
+
+  function generateFromForm() {
+    const company = document.getElementById('company').value;
+    const amount = document.getElementById('amount').value;
+    const desc = document.getElementById('desc').value;
+    const date = document.getElementById('date').value;
+
+    if (!company || !amount || !desc) {
+      alert('Fill in all fields');
+      return;
+    }
+
+    generateNote(company, amount, desc, date);
+  }
+
+  function useDeal(company, amount, desc) {
+    const date = document.getElementById('date').value;
+    generateNote(company, amount, desc, date);
+  }
+
+  function generateNote(company, amount, desc, date) {
+    let note = company + ' just closed ' + amount + '.\n\n';
+    note += 'The play: ' + desc + '.\n\n';
+    note += 'Why it matters: Fresh conviction in this market. Check investor mix.\n\n';
+    note += 'What consensus misses: Unit economics are often higher than comparable exits.\n\n';
+    note += 'Real question: Can they maintain growth at half the current CAC burn?\n\n';
+
+    // Word limit
+    const words = note.split(/\s+/);
+    if (words.length > 120) {
+      note = words.slice(0, 120).join(' ') + '...';
+    }
+
+    const wordCount = words.length;
+
+    let html = '<div class="card">';
+    html += '<h2 style="font-size: 16px; margin-bottom: 10px;">' + company + ' - ' + date + '</h2>';
+    html += '<div class="note">' + note + '</div>';
+    html += '<p class="info">Words: ' + wordCount + ' / 120</p>';
+    html += '<button onclick="copy()">📋 Copy to Clipboard</button>';
+    html += '<div id="msg"></div>';
+    html += '</div>';
+
+    document.getElementById('output').innerHTML = html;
+    window.noteText = note;
+  }
+
+  function copy() {
+    navigator.clipboard.writeText(window.noteText).then(() => {
+      document.getElementById('msg').innerHTML = '<p class="success">✓ Copied!</p>';
+    }).catch(() => {
+      alert('Copy failed - try Ctrl+C manually');
+    });
+  }
+</script>
+
+</body>
+</html>
