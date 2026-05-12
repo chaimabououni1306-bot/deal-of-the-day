@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deal Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    h1 { color: #000; margin-bottom: 10px; }
+    .subtitle { color: #666; margin-bottom: 30px; }
+    label {
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+    }
+    textarea { min-height: 80px; }
+    button {
+      background: #000;
+      color: white;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    button:hover { background: #333; }
+    .note-box {
+      background: #f9f9f9;
+      padding: 20px;
+      border-left: 4px solid #000;
+      margin-top: 30px;
+      white-space: pre-wrap;
+      font-family: Georgia, serif;
+      line-height: 1.8;
+      min-height: 150px;
+    }
+    .copy-btn {
+      background: #0066cc;
+      margin-top: 15px;
+    }
+    .copy-btn:hover { background: #0052a3; }
+    .word-count {
+      color: #666;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .success { color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h1>📊 Deal of the Day Generator</h1>
+  <p class="subtitle">Fill in the deal info → Get your Substack note</p>
+
+  <h2 style="font-size: 16px; margin-top: 30px; margin-bottom: 15px;">Enter Deal Info:</h2>
+
+  <label>Company Name *</label>
+  <input type="text" id="company" placeholder="e.g., Stripe Climate">
+
+  <label>Funding Amount *</label>
+  <input type="text" id="amount" placeholder="e.g., $500M or Series C">
+
+  <label>Investors</label>
+  <input type="text" id="investors" placeholder="e.g., TCV, Sapphire Ventures">
+
+  <label>What does the company do? *</label>
+  <textarea id="description" placeholder="e.g., Carbon removal marketplace funding"></textarea>
+
+  <label>Region *</label>
+  <select id="region">
+    <option value="">-- Select --</option>
+    <option value="European VC">European VC</option>
+    <option value="African & MENA">African & MENA</option>
+  </select>
+
+  <label>Source Link (optional)</label>
+  <input type="url" id="url" placeholder="https://...">
+
+  <button onclick="generateNote()">✨ Generate Note</button>
+
+  <div id="output"></div>
+</div>
+
+<script>
+function generateNote() {
+  const company = document.getElementById('company').value;
+  const amount = document.getElementById('amount').value;
+  const investors = document.getElementById('investors').value || 'Unknown';
+  const description = document.getElementById('description').value;
+  const region = document.getElementById('region').value;
+  const url = document.getElementById('url').value;
+
+  if (!company || !amount || !description || !region) {
+    alert('Please fill in all required fields (*)');
+    return;
+  }
+
+  // Generate note
+  let note = company + ' just closed ' + amount + '.\n\n';
+  note += 'The play: ' + description + '. Round led by ' + investors + '.\n\n';
+  note += 'Why it matters: Fresh conviction in this market segment. Check the investor mix — tells you about stage and geography priorities.\n\n';
+  note += 'What consensus misses: Unit economics are higher than comparable exits. Priced in or a miss?\n\n';
+  note += 'Real question: Can they maintain growth at half the current CAC burn?\n\n';
+
+  if (url) {
+    note += 'Source: ' + url;
+  }
+
+  // Count words
+  const wordCount = note.split(/\s+/).length;
+
+  // Remove em-dashes
+  note = note.replace(/—/g, ',');
+
+  // Output
+  let html = '<h2 style="margin-top: 30px; font-size: 16px;">Your Note:</h2>';
+  html += '<div class="note-box">' + note + '</div>';
+  html += '<div class="word-count">Words: ' + wordCount + ' / 120</div>';
+  html += '<button class="copy-btn" onclick="copyText()">📋 Copy to Clipboard</button>';
+  html += '<div id="copy-msg"></div>';
+
+  document.getElementById('output').innerHTML = html;
+  window.currentNote = note;
+}
+
+function copyText() {
+  navigator.clipboard.writeText(window.currentNote).then(() => {
+    document.getElementById('copy-msg').innerHTML = '<p class="success">✓ Copied! Paste in Substack now.</p>';
+  }).catch(() => {
+    alert('Copy failed. Try manual select + Ctrl+C');
+  });
+}
+</script>
+
+</body>
+</html>
