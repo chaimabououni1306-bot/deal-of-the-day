@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deal of the Day - Substack Note Generator</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fafafa;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    header {
+      margin-bottom: 40px;
+      border-bottom: 2px solid #000;
+      padding-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: 1px solid #000;
+      background: #fff;
+      color: #000;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      border-radius: 2px;
+    }
+
+    button:hover {
+      background: #000;
+      color: #fff;
+    }
+
+    button.active {
+      background: #000;
+      color: #fff;
+    }
+
+    button.secondary {
+      background: #e0e0e0;
+      border-color: #999;
+    }
+
+    button.secondary:hover {
+      background: #999;
+      color: #fff;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 32px;
+      margin-bottom: 24px;
+      border-radius: 4px;
+    }
+
+    .deal-header {
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .deal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .deal-meta {
+      font-size: 13px;
+      color: #666;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .deal-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .label {
+      display: inline-block;
+      background: #f0f0f0;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 2px;
+      margin-bottom: 8px;
+    }
+
+    .note-section {
+      margin-bottom: 24px;
+    }
+
+    .note-section h3 {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #999;
+      margin-bottom: 12px;
+    }
+
+    .generated-note {
+      background: #f9f9f9;
+      padding: 16px;
+      border-left: 3px solid #000;
+      font-size: 15px;
+      line-height: 1.7;
+      word-break: break-word;
+      white-space: pre-wrap;
+      font-family: 'Georgia', serif;
+    }
+
+    .note-stats {
+      display: flex;
+      gap: 24px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .stat-value {
+      font-weight: 700;
+      color: #000;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .image-suggestion {
+      background: #f0f0f0;
+      padding: 12px;
+      border-radius: 2px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+
+    .image-suggestion strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #666;
+      font-weight: 700;
+    }
+
+    .image-link {
+      color: #0066cc;
+      text-decoration: none;
+      word-break: break-all;
+    }
+
+    .image-link:hover {
+      text-decoration: underline;
+    }
+
+    .disclaimer {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 12px;
+      border-radius: 2px;
+      font-size: 13px;
+      color: #333;
+      margin-top: 16px;
+    }
+
+    .copy-feedback {
+      font-size: 12px;
+      color: #22863a;
+      margin-top: 8px;
+      display: inline-block;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      padding: 12px;
+      border-radius: 2px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 22px;
+      }
+
+      .controls {
+        flex-direction: column;
+      }
+
+      .filter-group {
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .deal-meta {
+        flex-direction: column;
+        gap: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function DealOfTheDayApp() {
+      const [deals, setDeals] = useState([]);
+      const [currentDeal, setCurrentDeal] = useState(null);
+      const [filter, setFilter] = useState('all');
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
+      const [copied, setCopied] = useState(false);
+
+      useEffect(() => {
+        fetchDeals();
+      }, [filter]);
+
+      const fetchDeals = async () => {
+        setLoading(true);
+        setError('');
+        try {
+          const response = await fetch(`/api/deals?filter=${filter}`);
+          if (!response.ok) throw new Error('Failed to fetch deals');
+          const data = await response.json();
+          setDeals(data);
+          if (data.length > 0) {
+            setCurrentDeal(data[Math.floor(Math.random() * data.length)]);
+          }
+        } catch (err) {
+          setError('Unable to fetch deals. Using sample data.');
+          console.error(err);
+          // Use mock data on error
+          const mockData = [
+            {
+              company: "Stripe Climate",
+              amount: "$500M",
+              investors: "Stripe",
+              date: "2024-05-10",
+              description: "Carbon removal marketplace funding",
+              region: "European VC"
+            },
+            {
+              company: "Flutterwave",
+              amount: "$25M Series C",
+              investors: "TCV, Blockstream",
+              date: "2024-05-09",
+              description: "African payments infrastructure",
+              region: "African & MENA"
+            }
+          ];
+          setDeals(mockData);
+          setCurrentDeal(mockData[0]);
+        }
+        setLoading(false);
+      };
+
+      const generateNote = () => {
+        if (!currentDeal) return '';
+
+        const note = generateSubstackNote(currentDeal);
+        return note;
+      };
+
+      const generateSubstackNote = (deal) => {
+        // Analytical, non-consensus tone - M&A/VC analyst perspective
+        const templates = [
+          // Template 1: Market move perspective
+          `${deal.company} just closed ${deal.amount}.
+
+The play: ${deal.description}. Round led by ${deal.investors}.
+
+Why it matters: This signals fresh conviction in [market segment]. Deal structure suggests [investor thesis].
+
+What's priced in: ${deal.amount} values [metric]. Street consensus misses that [non-consensus take].
+
+The risk: [Specific execution risk or market risk that consensus ignores].
+
+Are these metrics validated through independent customer checks, or rely on reported figures?`,
+
+          // Template 2: Contrarian take
+          `${deal.company} raised ${deal.amount}. ${deal.investors} leading.
+
+Surface read: ${deal.description}.
+
+Deeper: The check size and investor choice tells us [analytical insight]. That's not consensus.
+
+Real question: [Data-driven question about business model, market fit, or timing].
+
+The gap in coverage: Most analysis misses [specific point about unit economics or competitive dynamics].
+
+What would make you reconsider this thesis?`,
+
+          // Template 3: Data-driven angle
+          `${deal.company} Series C: ${deal.amount} from ${deal.investors}.
+
+Core thesis: ${deal.description}.
+
+The data: [Insert specific metrics or market data]. That's [direction] from consensus expectations.
+
+Why consensus gets it wrong: [Specific contrarian insight].
+
+Watch for: [Specific operational or market metric that will validate or invalidate thesis].
+
+What leading indicator would you track first?`,
+        ];
+
+        let note = templates[Math.floor(Math.random() * templates.length)];
+
+        // Fill in placeholders with deal data
+        note = note.replace(/\[market segment\]/g, 'emerging markets tech infrastructure');
+        note = note.replace(/\[investor thesis\]/g, 'capital concentration in proven founders');
+        note = note.replace(/\[metric\]/g, 'the business at 3-5x current ARR');
+        note = note.replace(/\[non-consensus take\]/g, 'but carries more downside in a correction');
+        note = note.replace(/\[Specific execution risk.*?\]/g, 'regulatory shifts in key markets');
+        note = note.replace(/\[analytical insight\]/g, 'conviction in the space is cooling');
+        note = note.replace(/\[Data-driven question.*?\]/g, 'Can the unit economics survive at half the CAC?');
+        note = note.replace(/\[data or market data\]/g, 'CAC is 40% above peer average');
+        note = note.replace(/\[direction\]/g, 'higher');
+        note = note.replace(/\[Specific contrarian.*?\]/g, 'they overweight TAM size vs. buyer behavior');
+        note = note.replace(/\[Specific operational.*?\]/g, 'monthly churn and NRR trends');
+        note = note.replace(/\[Insert specific metrics.*?\]/g, 'conversion rates on the sales side');
+
+        // Trim to 120 words max
+        const words = note.split(/\s+/);
+        if (words.length > 120) {
+          note = words.slice(0, 120).join(' ') + '...';
+        }
+
+        // Remove em dashes
+        note = note.replace(/—/g, ',');
+
+        return note;
+      };
+
+      const getImageSuggestion = () => {
+        if (!currentDeal) return '';
+        const queries = [
+          'venture capital spreadsheet data analysis',
+          'african tech startup office',
+          'european fintech meeting room',
+          'investment deal documents',
+          'growth metrics dashboard',
+          'emerging markets map',
+          'startup founder collaboration',
+          'vc due diligence process'
+        ];
+        const query = queries[Math.floor(Math.random() * queries.length)];
+        return `https://unsplash.com/napi/search/photos?query=${encodeURIComponent(query)}`;
+      };
+
+      const copyToClipboard = async () => {
+        const note = generateNote();
+        try {
+          await navigator.clipboard.writeText(note);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+          console.error('Failed to copy:', err);
+        }
+      };
+
+      const handleNewDeal = () => {
+        if (deals.length > 0) {
+          const newDeal = deals[Math.floor(Math.random() * deals.length)];
+          setCurrentDeal(newDeal);
+        }
+      };
+
+      return (
+        <div className="container">
+          <header>
+            <h1>Deal of the Day</h1>
+            <p className="subtitle">Substack Note Generator for South of the Cap Table</p>
+          </header>
+
+          {error && <div className="error">{error}</div>}
+
+          <div className="controls">
+            <div className="filter-group">
+              <button
+                className={filter === 'all' ? 'active' : ''}
+                onClick={() => setFilter('all')}
+              >
+                All Regions
+              </button>
+              <button
+                className={filter === 'european vc' ? 'active' : ''}
+                onClick={() => setFilter('european vc')}
+              >
+                European VC
+              </button>
+              <button
+                className={filter === 'african & mena' ? 'active' : ''}
+                onClick={() => setFilter('african & mena')}
+              >
+                African & MENA
+              </button>
+            </div>
+            <button className="secondary" onClick={fetchDeals}>
+              Generate
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="loading">Loading deals...</div>
+          ) : currentDeal ? (
+            <div className="card">
+              <div className="deal-header">
+                <div className="deal-title">{currentDeal.company}</div>
+                <div className="deal-meta">
+                  <span>💰 {currentDeal.amount}</span>
+                  <span>🏢 {currentDeal.investors}</span>
+                  <span>📅 {currentDeal.date}</span>
+                </div>
+              </div>
+
+              <div className="label">{currentDeal.region}</div>
+
+              <div className="note-section">
+                <h3>Generated Note</h3>
+                <div className="generated-note">{generateNote()}</div>
+                <div className="note-stats">
+                  <div className="stat">
+                    <span>Word Count:</span>
+                    <span className="stat-value">{generateNote().split(/\s+/).length}</span>
+                  </div>
+                  <div className="stat">
+                    <span>Em-dashes:</span>
+                    <span className="stat-value">0</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="note-section">
+                <h3>Image Suggestion</h3>
+                <div className="image-suggestion">
+                  <strong>Unsplash Query</strong>
+                  <a href={getImageSuggestion()} target="_blank" rel="noopener noreferrer" className="image-link">
+                    {`unsplash.com - "venture capital" + "data analysis"`}
+                  </a>
+                </div>
+              </div>
+
+              <div className="actions">
+                <button onClick={copyToClipboard}>
+                  📋 Copy Note
+                </button>
+                <button className="secondary" onClick={handleNewDeal}>
+                  🔄 New Deal
+                </button>
+              </div>
+
+              {copied && <div className="copy-feedback">✓ Copied to clipboard</div>}
+
+              <div className="disclaimer">
+                ⚠️ <strong>Disclaimer:</strong> Verify all deal details before publishing. Amounts, investors, and dates should be cross-referenced with primary sources.
+              </div>
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<DealOfTheDayApp />, document.getElementById('root'));
+  </script>
+</body>
+</html>
