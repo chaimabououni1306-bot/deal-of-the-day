@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deal of the Day Generator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fafafa;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    header {
+      margin-bottom: 40px;
+      border-bottom: 2px solid #000;
+      padding-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 12px 20px;
+      border: 2px solid #000;
+      background: #fff;
+      color: #000;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: #000;
+      color: #fff;
+    }
+
+    button.active {
+      background: #000;
+      color: #fff;
+    }
+
+    button.secondary {
+      background: #e0e0e0;
+      border-color: #999;
+    }
+
+    button.secondary:hover {
+      background: #999;
+      color: #fff;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 32px;
+      margin-bottom: 24px;
+      border-radius: 4px;
+    }
+
+    .deal-header {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .deal-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .deal-meta {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .label {
+      display: inline-block;
+      background: #f0f0f0;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 2px;
+      margin-bottom: 12px;
+    }
+
+    .note-section {
+      margin-bottom: 24px;
+    }
+
+    .note-section h3 {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #999;
+      margin-bottom: 12px;
+    }
+
+    .generated-note {
+      background: #f9f9f9;
+      padding: 20px;
+      border-left: 4px solid #000;
+      font-size: 15px;
+      line-height: 1.8;
+      word-break: break-word;
+      white-space: pre-wrap;
+      font-family: Georgia, serif;
+      min-height: 200px;
+    }
+
+    .note-stats {
+      display: flex;
+      gap: 20px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .stat-value {
+      font-weight: 700;
+      color: #000;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin: 24px 0;
+      flex-wrap: wrap;
+    }
+
+    .image-suggestion {
+      background: #f0f0f0;
+      padding: 16px;
+      border-radius: 4px;
+      margin: 16px 0;
+      font-size: 13px;
+    }
+
+    .image-suggestion strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #666;
+      font-weight: 700;
+    }
+
+    .image-link {
+      color: #0066cc;
+      text-decoration: none;
+      word-break: break-all;
+    }
+
+    .image-link:hover {
+      text-decoration: underline;
+    }
+
+    .disclaimer {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 14px;
+      border-radius: 2px;
+      font-size: 13px;
+      color: #333;
+      margin-top: 20px;
+    }
+
+    .copy-feedback {
+      font-size: 12px;
+      color: #22863a;
+      margin-top: 8px;
+    }
+
+    .no-deals {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 22px; }
+      .controls { flex-direction: column; }
+      button { width: 100%; }
+      .card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📊 Deal of the Day</h1>
+      <p class="subtitle">Substack Note Generator - South of the Cap Table</p>
+    </header>
+
+    <div class="controls">
+      <button onclick="setFilter('all')" id="btn-all" class="active">All Regions</button>
+      <button onclick="setFilter('european vc')" id="btn-eu">European VC</button>
+      <button onclick="setFilter('african & mena')" id="btn-africa">African & MENA</button>
+      <button class="secondary" onclick="generateDeal()">🎲 Generate Deal</button>
+    </div>
+
+    <div id="content">
+      <div class="no-deals">
+        <p>👇 Clique sur "Generate Deal" pour commencer</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Deals database
+    const allDeals = [
+      {
+        company: "Flutterwave",
+        amount: "$25M Series C",
+        investors: "TCV, Blockstream",
+        date: "2024-05-09",
+        description: "African payments infrastructure platform",
+        region: "African & MENA"
+      },
+      {
+        company: "Andela",
+        amount: "$200M+ Series C",
+        investors: "Goodwin, Sapphire Ventures",
+        date: "2024-05-07",
+        description: "African tech talent and engineering platform",
+        region: "African & MENA"
+      },
+      {
+        company: "Deel",
+        amount: "$30M Series C",
+        investors: "Accel, Sapphire Ventures",
+        date: "2024-05-08",
+        description: "Global payroll and HR platform for remote teams",
+        region: "European VC"
+      },
+      {
+        company: "Stripe Climate",
+        amount: "$500M",
+        investors: "Stripe",
+        date: "2024-05-10",
+        description: "Carbon removal marketplace and funding platform",
+        region: "European VC"
+      },
+      {
+        company: "Jumia",
+        amount: "$50M growth",
+        investors: "Various",
+        date: "2024-05-06",
+        description: "African e-commerce and logistics network",
+        region: "African & MENA"
+      },
+      {
+        company: "Revolut",
+        amount: "$800M+ valuation",
+        investors: "TCV, SoftBank",
+        date: "2024-05-05",
+        description: "European fintech and digital banking",
+        region: "European VC"
+      },
+      {
+        company: "Disrupt Africa",
+        amount: "$20M Fund II",
+        investors: "Pan-African VCs",
+        date: "2024-05-04",
+        description: "African startup investment and acceleration",
+        region: "African & MENA"
+      }
+    ];
+
+    let currentDeal = null;
+    let currentFilter = 'all';
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(`btn-${filter.split(' ')[0]}`).classList.add('active');
+    }
+
+    function getFilteredDeals() {
+      if (currentFilter === 'all') return allDeals;
+      return allDeals.filter(d => d.region.toLowerCase() === currentFilter.toLowerCase());
+    }
+
+    function generateNote(deal) {
+      const templates = [
+        `${deal.company} just closed ${deal.amount}.
+
+The play: ${deal.description}. Round led by ${deal.investors}.
+
+Why it matters: Fresh capital signals conviction in this market segment. Check the investor mix — it tells you something about stage and geography priorities.
+
+What consensus misses: Unit economics and CAC ratio are higher than comparable exits. That's priced in or it's a miss?
+
+Real question: Can they maintain growth at half the CAC burn they're running now?`,
+
+        `${deal.company} raised ${deal.amount}. ${deal.investors} leading.
+
+Surface read: ${deal.description}.
+
+Deeper: The check size and investor pedigree suggest this is a consolidation play, not a land grab.
+
+Market signal: ${deal.region} is getting fresh LP capital. That's either validation or desperation — which one?
+
+What to watch: CAC, LTV, and cohort retention over next 12 months. Those numbers will tell you if this was a good trade.`,
+
+        `${deal.company} Series C: ${deal.amount} from ${deal.investors}.
+
+Core thesis: ${deal.description}.
+
+The trade: Investors are betting on [X metric]. But what's the ceiling?
+
+Gap in analysis: Most coverage ignores the regulatory and competitive headwinds in this vertical.
+
+One question worth asking: What happens if the lead investor doesn't follow in Series D?`
+      ];
+
+      let note = templates[Math.floor(Math.random() * templates.length)];
+
+      // Word count limit
+      const words = note.split(/\s+/);
+      if (words.length > 120) {
+        note = words.slice(0, 120).join(' ') + '...';
+      }
+
+      // Remove em-dashes
+      note = note.replace(/—/g, ', ');
+
+      return note;
+    }
+
+    function generateDeal() {
+      const filtered = getFilteredDeals();
+      if (filtered.length === 0) {
+        document.getElementById('content').innerHTML = '<div class="no-deals">Pas de deals pour ce filtre</div>';
+        return;
+      }
+
+      currentDeal = filtered[Math.floor(Math.random() * filtered.length)];
+      const note = generateNote(currentDeal);
+      const wordCount = note.split(/\s+/).length;
+      const imageQueries = [
+        'venture capital analysis',
+        'startup pitch deck',
+        'business growth metrics',
+        'investment decision',
+        'market analysis data'
+      ];
+      const imageQuery = imageQueries[Math.floor(Math.random() * imageQueries.length)];
+
+      document.getElementById('content').innerHTML = `
+        <div class="card">
+          <div class="deal-header">
+            <div class="deal-title">${currentDeal.company}</div>
+            <div class="deal-meta">
+              💰 ${currentDeal.amount} | 🏢 ${currentDeal.investors} | 📅 ${currentDeal.date}
+            </div>
+          </div>
+
+          <span class="label">${currentDeal.region}</span>
+
+          <div class="note-section">
+            <h3>Your Substack Note</h3>
+            <div class="generated-note">${note}</div>
+            <div class="note-stats">
+              <div>Word count: <span class="stat-value">${wordCount}</span> / 120</div>
+              <div>Em-dashes: <span class="stat-value">0</span></div>
+            </div>
+          </div>
+
+          <div class="note-section">
+            <h3>Image for Post</h3>
+            <div class="image-suggestion">
+              <strong>Unsplash Search</strong>
+              <a href="https://unsplash.com/napi/search/photos?query=${encodeURIComponent(imageQuery)}" target="_blank" class="image-link">
+                ${imageQuery}
+              </a>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button onclick="copyNote('${note.replace(/'/g, "\\'")}')">📋 Copy Note</button>
+            <button class="secondary" onclick="generateDeal()">🔄 New Deal</button>
+          </div>
+
+          <div id="feedback"></div>
+
+          <div class="disclaimer">
+            ⚠️ <strong>Disclaimer:</strong> Verify all deal amounts, investors, and dates with primary sources before publishing. This tool generates templates only.
+          </div>
+        </div>
+      `;
+    }
+
+    function copyNote(note) {
+      navigator.clipboard.writeText(note).then(() => {
+        const feedback = document.getElementById('feedback');
+        feedback.innerHTML = '<div class="copy-feedback">✅ Note copied to clipboard! Paste it in Substack now.</div>';
+        setTimeout(() => {
+          feedback.innerHTML = '';
+        }, 3000);
+      }).catch(err => {
+        console.error('Copy failed:', err);
+        alert('Copie manuelle: sélectionne le texte et Ctrl+C');
+      });
+    }
+
+    // Set initial filter button
+    document.getElementById('btn-all').classList.add('active');
+  </script>
+</body>
+</html>
