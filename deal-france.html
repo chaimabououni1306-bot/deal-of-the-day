@@ -135,6 +135,26 @@
       font-weight: bold;
       margin-bottom: 10px;
     }
+    .date-filter {
+      background: white;
+      padding: 20px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .date-filter input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+    .date-filter button {
+      margin: 0;
+      padding: 8px 16px;
+    }
   </style>
 </head>
 <body>
@@ -142,6 +162,13 @@
 <div class="header">
   <h1>📊 Deal of the Day</h1>
   <p class="subtitle">France & Europe Fundraising News</p>
+</div>
+
+<div class="date-filter">
+  <label style="margin: 0; font-weight: bold;">Select Date:</label>
+  <input type="date" id="dateInput">
+  <button onclick="searchByDate()">🔍 Search</button>
+  <button onclick="resetDate()" style="background: #666;">Reset</button>
 </div>
 
 <div id="app"></div>
@@ -158,19 +185,47 @@ function showLoading() {
   `;
 }
 
-async function loadDeals() {
+function searchByDate() {
+  const dateInput = document.getElementById('dateInput').value;
+  if (!dateInput) {
+    alert('Please select a date');
+    return;
+  }
+  loadDeals(dateInput);
+}
+
+function resetDate() {
+  document.getElementById('dateInput').value = '';
+  loadDeals();
+}
+
+async function loadDeals(selectedDate = null) {
   showLoading();
 
   try {
-    const today = new Date();
-    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const fromDate = sevenDaysAgo.toISOString().split('T')[0];
+    let fromDate, toDate;
+
+    if (selectedDate) {
+      // Search for deals on the selected date (±1 day to catch all)
+      const selected = new Date(selectedDate);
+      const dayBefore = new Date(selected.getTime() - 1 * 24 * 60 * 60 * 1000);
+      const dayAfter = new Date(selected.getTime() + 1 * 24 * 60 * 60 * 1000);
+
+      fromDate = dayBefore.toISOString().split('T')[0];
+      toDate = dayAfter.toISOString().split('T')[0];
+    } else {
+      // Default: last 7 days
+      const today = new Date();
+      const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      fromDate = sevenDaysAgo.toISOString().split('T')[0];
+      toDate = today.toISOString().split('T')[0];
+    }
 
     // Search for France and Europe fundraising
     const query = '(France OR Europe) AND (fundraising OR funding OR investment OR startup) AND (million OR series)';
 
     const response = await fetch(
-      `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&from=${fromDate}&sortBy=publishedAt&language=en&pageSize=30&apiKey=${API_KEY}`
+      `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&from=${fromDate}&to=${toDate}&sortBy=publishedAt&language=en&pageSize=30&apiKey=${API_KEY}`
     );
 
     const data = await response.json();
@@ -304,6 +359,11 @@ function showError(msg) {
   `;
   document.getElementById('app').innerHTML = html;
 }
+
+// Set today's date as default in the date input
+const today = new Date();
+const dateString = today.toISOString().split('T')[0];
+document.getElementById('dateInput').value = dateString;
 
 // Load on startup
 loadDeals();
