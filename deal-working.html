@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deal of the Day - Working Version</title>
+  <style>
+    body { font-family: Arial; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    .header { background: white; padding: 20px; text-align: center; margin-bottom: 20px; border-radius: 5px; }
+    h1 { margin: 0; font-size: 24px; }
+    .subtitle { color: #666; margin: 5px 0 0 0; }
+    .card { background: white; padding: 20px; border-radius: 5px; margin-bottom: 15px; }
+    input[type="date"] { padding: 8px; border: 1px solid #ddd; border-radius: 3px; font-size: 14px; }
+    button { background: #000; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; margin: 10px 5px 10px 0; }
+    button:hover { background: #333; }
+    button.back { background: #666; }
+    button.back:hover { background: #999; }
+    .deals { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+    .deal { padding: 12px; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; }
+    .deal:hover { background: #f0f0f0; border-color: #000; }
+    .deal-name { font-weight: bold; margin-bottom: 3px; }
+    .deal-info { font-size: 12px; color: #666; }
+    .note-box { background: #f9f9f9; padding: 15px; border-left: 4px solid #000; white-space: pre-wrap; font-family: Georgia; line-height: 1.7; margin: 15px 0; }
+    .loading { text-align: center; color: #666; padding: 30px; }
+    .spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid #ddd; border-top-color: #000; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { background: #ffe0e0; color: #c00; padding: 15px; border-radius: 3px; margin: 10px 0; }
+    .success { color: green; font-weight: bold; }
+    .info { color: #666; font-size: 12px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 Deal of the Day</h1>
+  <p class="subtitle">France & Europe Fundraising</p>
+</div>
+
+<div class="card">
+  <p style="margin-bottom: 15px; font-weight: bold;">Select a date to search deals:</p>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <input type="date" id="dateInput">
+    <button onclick="searchDeals()">🔍 Search</button>
+  </div>
+</div>
+
+<div id="results"></div>
+
+<script>
+// Set today
+const today = new Date();
+document.getElementById('dateInput').value = today.toISOString().split('T')[0];
+
+// Search automatically on load
+searchDeals();
+
+function searchDeals() {
+  const date = document.getElementById('dateInput').value;
+  const resultsDiv = document.getElementById('results');
+
+  resultsDiv.innerHTML = '<div class="card"><div class="loading"><div class="spinner"></div> Searching deals for ' + date + '...</div></div>';
+
+  // Try to fetch from NewsAPI
+  const API_KEY = '7ae2e8095d034715b1e7dad7c818175f';
+  const query = '(France OR Europe) AND (startup OR funding OR investment) AND (million OR raised OR series)';
+  const fromDate = date;
+  const toDate = date;
+
+  fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&from=${fromDate}&to=${toDate}&sortBy=publishedAt&language=en&pageSize=20&apiKey=${API_KEY}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.articles && data.articles.length > 0) {
+        showDeals(data.articles, date);
+      } else {
+        showNoResults(date);
+      }
+    })
+    .catch(err => {
+      console.error('API Error:', err);
+      showError('Could not fetch deals. Try another date.');
+    });
+}
+
+function showDeals(articles, date) {
+  const resultsDiv = document.getElementById('results');
+
+  if (articles.length === 0) {
+    resultsDiv.innerHTML = '<div class="card"><p>No deals found for ' + date + '</p></div>';
+    return;
+  }
+
+  let html = '<div class="card"><p style="margin-bottom: 15px;">Found ' + articles.length + ' results - Click one:</p><div class="deals">';
+
+  articles.forEach((article, i) => {
+    html += `<div class="deal" onclick="selectDeal(${i})">
+      <div class="deal-name">${article.title.substring(0, 70)}</div>
+      <div class="deal-info">${article.source.name} • ${new Date(article.publishedAt).toLocaleDateString()}</div>
+    </div>`;
+  });
+
+  html += '</div></div>';
+  resultsDiv.innerHTML = html;
+  window.currentArticles = articles;
+}
+
+function showNoResults(date) {
+  document.getElementById('results').innerHTML = '<div class="card"><p>No deals published on ' + date + '. Try another date.</p></div>';
+}
+
+function showError(msg) {
+  document.getElementById('results').innerHTML = '<div class="card error">' + msg + '</div>';
+}
+
+function selectDeal(index) {
+  const article = window.currentArticles[index];
+  const note = generateNote(article);
+  showNote(article, note);
+}
+
+function generateNote(article) {
+  let title = article.title.substring(0, 50);
+  let desc = article.description ? article.description.substring(0, 80) : 'New funding announcement';
+
+  let note = title + ' just raised funding.\n\n';
+  note += 'The news: ' + desc + '\n\n';
+  note += 'Why it matters: Fresh conviction in this market. Check investor mix.\n\n';
+  note += 'What consensus misses: Unit economics are often higher than comparable exits.\n\n';
+  note += 'Real question: Can they maintain growth at half the current CAC burn?';
+
+  // Word limit
+  const words = note.split(/\s+/);
+  if (words.length > 120) {
+    note = words.slice(0, 120).join(' ') + '...';
+  }
+
+  return note;
+}
+
+function showNote(article, note) {
+  const wordCount = note.split(/\s+/).length;
+  const date = new Date(article.publishedAt).toLocaleDateString();
+
+  let html = '<div class="card">';
+  html += '<h2 style="font-size: 16px; margin-bottom: 10px;">' + article.title + '</h2>';
+  html += '<p class="info">📅 ' + date + ' | ' + article.source.name + '</p>';
+  html += '<a href="' + article.url + '" target="_blank" style="color: #0066cc; text-decoration: none; font-size: 12px;">Read full article →</a>';
+  html += '<div class="note-box">' + note + '</div>';
+  html += '<p class="info">Words: ' + wordCount + ' / 120</p>';
+  html += '<button onclick="copy()">📋 Copy</button>';
+  html += '<button class="back" onclick="searchDeals()">← Back</button>';
+  html += '<div id="msg"></div>';
+  html += '</div>';
+
+  document.getElementById('results').innerHTML = html;
+  window.noteText = note;
+}
+
+function copy() {
+  navigator.clipboard.writeText(window.noteText).then(() => {
+    document.getElementById('msg').innerHTML = '<p class="success">✓ Copied!</p>';
+  }).catch(() => {
+    alert('Copy failed');
+  });
+}
+</script>
+
+</body>
+</html>
