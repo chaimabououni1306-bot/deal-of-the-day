@@ -368,22 +368,26 @@
       document.getElementById('content').innerHTML = `
         <div class="loading">
           <span class="spinner"></span>
-          Chargement des deals du jour...
+          Searching for today's deals (checking last 3 days)...
         </div>
       `;
 
       try {
-        // Today's date
+        // Last 3 days to catch everything
         const today = new Date();
-        const fromDate = today.toISOString().split('T')[0];
+        const threeDaysAgo = new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000);
+        const fromDate = threeDaysAgo.toISOString().split('T')[0];
+        const toDate = today.toISOString().split('T')[0];
 
-        // Search for VC funding, fundraising news from Europe and Africa
+        // Broader search terms
         const searchTerms = [
-          'startup funding Europe',
-          'venture capital Africa',
-          'series funding MENA',
-          'startup fundraising Europe Africa',
-          'VC investment today'
+          'funding raise',
+          'series a funding',
+          'series b funding',
+          'venture capital',
+          'startup investment',
+          'seed funding',
+          'angel investment'
         ];
 
         let deals = [];
@@ -391,39 +395,44 @@
         for (const term of searchTerms) {
           try {
             const response = await fetch(
-              `https://newsapi.org/v2/everything?q=${encodeURIComponent(term)}&from=${fromDate}&to=${fromDate}&sortBy=publishedAt&language=en&apiKey=${API_KEY}`
+              `https://newsapi.org/v2/everything?q=${encodeURIComponent(term)}&from=${fromDate}&to=${toDate}&sortBy=publishedAt&language=en&apiKey=${API_KEY}`
             );
             const data = await response.json();
 
             if (data.articles && data.articles.length > 0) {
-              const parsed = data.articles.map(article => {
-                const title = article.title || '';
-                const description = article.description || '';
-                const content = article.content || '';
-                const fullText = `${title} ${description} ${content}`.toLowerCase();
+              const parsed = data.articles
+                .slice(0, 5) // Only top 5 per search
+                .map(article => {
+                  const title = article.title || '';
+                  const description = article.description || '';
+                  const content = article.content || '';
+                  const fullText = `${title} ${description} ${content}`.toLowerCase();
 
-                // Detect region
-                let region = 'Other';
-                if (fullText.includes('europe') || fullText.includes('uk') || fullText.includes('germany') || fullText.includes('france') || fullText.includes('scandinavia') || fullText.includes('netherlands')) {
-                  region = 'European VC';
-                } else if (fullText.includes('africa') || fullText.includes('mena') || fullText.includes('nigeria') || fullText.includes('kenya') || fullText.includes('egypt') || fullText.includes('south africa')) {
-                  region = 'African & MENA';
-                }
+                  // Detect region - broader matching
+                  let region = 'Other';
+                  const euroKeywords = ['europe', 'uk', 'germany', 'france', 'spain', 'italy', 'netherlands', 'belgium', 'sweden', 'denmark', 'poland', 'london', 'paris', 'berlin'];
+                  const africaKeywords = ['africa', 'mena', 'nigeria', 'kenya', 'egypt', 'south africa', 'morocco', 'tunisia', 'ghana', 'rwanda'];
 
-                // Extract company and amount if possible
-                const amountMatch = fullText.match(/\$[\d.]+(m|b|million|billion)?/i);
-                const amount = amountMatch ? amountMatch[0] : 'Undisclosed';
+                  if (euroKeywords.some(k => fullText.includes(k))) {
+                    region = 'European VC';
+                  } else if (africaKeywords.some(k => fullText.includes(k))) {
+                    region = 'African & MENA';
+                  }
 
-                return {
-                  company: extractCompanyName(title),
-                  amount: amount,
-                  description: title,
-                  date: article.publishedAt.split('T')[0],
-                  url: article.url,
-                  source: article.source.name,
-                  region: region
-                };
-              });
+                  // Extract company and amount
+                  const amountMatch = fullText.match(/\$[\d.]+\s*(m|b|million|billion)?/i);
+                  const amount = amountMatch ? amountMatch[0] : 'Undisclosed';
+
+                  return {
+                    company: extractCompanyName(title),
+                    amount: amount,
+                    description: title,
+                    date: article.publishedAt.split('T')[0],
+                    url: article.url,
+                    source: article.source.name,
+                    region: region
+                  };
+                });
 
               deals = [...deals, ...parsed];
             }
@@ -432,14 +441,10 @@
           }
         }
 
-        if (deals.length === 0) {
-          throw new Error('No deals found for today');
-        }
-
         // Remove duplicates
-        allDeals = Array.from(new Map(deals.map(d => [d.company + d.amount, d])).values());
+        allDeals = Array.from(new Map(deals.map(d => [d.company + d.url, d])).values());
 
-        // Filter valid deals
+        // Filter valid deals (both regions)
         allDeals = allDeals.filter(d => d.region !== 'Other');
 
         fetchBtn.disabled = false;
@@ -447,9 +452,21 @@
         if (allDeals.length > 0) {
           showDealsList();
         } else {
+          // Fallback: show message and allow user to add manual deals
           document.getElementById('content').innerHTML = `
-            <div class="error">
-              ⚠️ No VC deals found for today in Europe or Africa. Try again tomorrow or filter by "All Regions".
+            <div class="card">
+              <div class="error">
+                ⚠️ No VC deals found in the news yet.
+                <br><br>
+                This can happen if:
+                • No deals were published in the last 3 days
+                • NewsAPI hasn't indexed them yet
+                • Your API key has limits
+              </div>
+              <p style="margin-top: 20px; font-size: 14px; color: #666;">
+                <strong>Workaround:</strong> You can search Twitter/Crunchbase directly for today's deals and I'll help you write the note manually.
+              </p>
+              <button class="secondary" onclick="location.reload()">Try Again</button>
             </div>
           `;
         }
@@ -457,9 +474,9 @@
         fetchBtn.disabled = false;
         document.getElementById('content').innerHTML = `
           <div class="error">
-            ❌ Error loading deals: ${error.message}
+            ❌ Error: ${error.message}
             <br><br>
-            Check your API key or try again in a moment.
+            <small>Check: API key validity, internet connection, or try a different search approach.</small>
           </div>
         `;
       }
