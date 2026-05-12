@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deal Generator</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 700px; margin: 0 auto; }
+    .header { background: white; padding: 25px; text-align: center; margin-bottom: 20px; border-radius: 5px; }
+    h1 { font-size: 24px; margin-bottom: 5px; }
+    .subtitle { color: #666; font-size: 13px; }
+    .card { background: white; padding: 20px; border-radius: 5px; margin-bottom: 15px; }
+    h2 { font-size: 16px; margin-bottom: 15px; }
+    textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 3px; font-family: Arial; font-size: 14px; min-height: 120px; margin-bottom: 15px; }
+    textarea:focus { outline: none; border-color: #000; box-shadow: 0 0 0 2px rgba(0,0,0,0.1); }
+    button { background: #000; color: white; padding: 12px 25px; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; font-size: 14px; margin: 5px 5px 5px 0; }
+    button:hover { background: #333; }
+    button.secondary { background: #666; }
+    button.secondary:hover { background: #999; }
+    .note-box { background: #f9f9f9; padding: 15px; border-left: 4px solid #000; white-space: pre-wrap; font-family: Georgia; line-height: 1.8; margin: 15px 0; }
+    .info { color: #666; font-size: 12px; margin: 10px 0; }
+    .success { color: green; font-weight: bold; }
+    .example { background: #f0f0f0; padding: 12px; border-radius: 3px; margin: 15px 0; font-size: 13px; line-height: 1.6; }
+    .example strong { display: block; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>📊 Deal Generator</h1>
+    <p class="subtitle">Paste deal title → Get your Substack note instantly</p>
+  </div>
+
+  <div class="card">
+    <h2>How it works:</h2>
+    <p style="font-size: 13px; line-height: 1.8; color: #666; margin-bottom: 15px;">
+      1. Find a deal on Twitter, LinkedIn, Crunchbase, or TechCrunch<br>
+      2. Copy the headline/title<br>
+      3. Paste it below<br>
+      4. Click "Generate" → Your note is ready!
+    </p>
+
+    <div class="example">
+      <strong>Example headlines:</strong>
+      • "Stripe Climate raises $500M for carbon removal"<br>
+      • "BlaBlaCar Series D: $200M funding from Accel"<br>
+      • "Alan nabs $140M Series C for SME insurance"
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Paste deal headline here:</h2>
+    <textarea id="headline" placeholder="e.g., Stripe Climate raises $500M for carbon removal marketplace"></textarea>
+
+    <button onclick="generateNote()">✨ Generate Note</button>
+    <button class="secondary" onclick="document.getElementById('headline').value = ''">Clear</button>
+  </div>
+
+  <div id="output"></div>
+</div>
+
+<script>
+function generateNote() {
+  const headline = document.getElementById('headline').value.trim();
+
+  if (!headline) {
+    alert('Paste a deal headline first');
+    return;
+  }
+
+  // Extract key info from headline
+  const company = extractCompany(headline);
+  const amount = extractAmount(headline);
+  const action = headline.includes('series') || headline.includes('Series') ? 'secured funding' : 'raised';
+
+  // Generate note
+  let note = company + ' ' + action + ' ' + (amount || 'recently') + '.\n\n';
+  note += 'The play: ' + headline.substring(0, 80) + '...\n\n';
+  note += 'Why it matters: Fresh conviction in this market. Check who led the round.\n\n';
+  note += 'What consensus misses: Unit economics and CAC are often higher than comps.\n\n';
+  note += 'Real question: Can they maintain growth at half the current CAC burn?\n\n';
+  note += 'Source: Verify on TechCrunch / Crunchbase before publishing.';
+
+  // Word limit
+  const words = note.split(/\s+/);
+  if (words.length > 120) {
+    note = words.slice(0, 120).join(' ') + '...';
+  }
+
+  const wordCount = words.length;
+
+  let output = '<div class="card">';
+  output += '<h2>Your Substack Note:</h2>';
+  output += '<div class="note-box">' + note + '</div>';
+  output += '<p class="info">Words: ' + wordCount + ' / 120</p>';
+  output += '<button onclick="copy()">📋 Copy to Clipboard</button>';
+  output += '<button class="secondary" onclick="document.getElementById(\'output\').innerHTML = \'\'">← New Deal</button>';
+  output += '<div id="feedback"></div>';
+  output += '</div>';
+
+  document.getElementById('output').innerHTML = output;
+  window.noteText = note;
+}
+
+function extractCompany(text) {
+  const match = text.match(/^([A-Z][a-zA-Z0-9]+)/);
+  return match ? match[1] : 'The company';
+}
+
+function extractAmount(text) {
+  const match = text.match(/\$[\d.]+[MBK]?|€[\d.]+[MBK]?/);
+  return match ? match[0] : null;
+}
+
+function copy() {
+  navigator.clipboard.writeText(window.noteText).then(() => {
+    document.getElementById('feedback').innerHTML = '<p class="success" style="margin-top: 10px;">✓ Copied! Paste in Substack now.</p>';
+    setTimeout(() => {
+      document.getElementById('feedback').innerHTML = '';
+    }, 3000);
+  }).catch(() => {
+    alert('Copy failed - select all and Ctrl+C');
+  });
+}
+
+// Allow Enter key to generate
+document.getElementById('headline').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter' && e.ctrlKey) {
+    generateNote();
+  }
+});
+</script>
+
+</body>
+</html>
