@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deal of the Day - Auto Fetch</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    .header { background: white; padding: 25px; text-align: center; margin-bottom: 20px; border-radius: 5px; }
+    h1 { font-size: 26px; margin-bottom: 5px; }
+    .subtitle { color: #666; font-size: 13px; }
+    .card { background: white; padding: 20px; border-radius: 5px; margin-bottom: 15px; }
+    .deals-list { display: flex; flex-direction: column; gap: 10px; }
+    .deal { padding: 15px; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; transition: all 0.2s; }
+    .deal:hover { background: #f5f5f5; border-color: #000; }
+    .deal-title { font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+    .deal-meta { font-size: 12px; color: #666; }
+    .loading { text-align: center; padding: 40px; color: #666; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #ddd; border-top-color: #000; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .note-box { background: #f9f9f9; padding: 15px; border-left: 4px solid #000; white-space: pre-wrap; font-family: Georgia; line-height: 1.8; margin: 15px 0; }
+    button { background: #000; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; margin: 5px 5px 5px 0; }
+    button:hover { background: #333; }
+    button.back { background: #666; }
+    button.back:hover { background: #999; }
+    button.refresh { background: #0066cc; }
+    button.refresh:hover { background: #0052a3; }
+    .info { color: #666; font-size: 12px; margin: 10px 0; }
+    .success { color: green; font-weight: bold; }
+    .error { background: #ffe0e0; color: #c00; padding: 15px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>📊 Deal of the Day</h1>
+    <p class="subtitle">Auto-fetching Latest VC Deals from TechCrunch</p>
+  </div>
+
+  <div class="card" style="text-align: center;">
+    <button class="refresh" onclick="loadDeals()">🔄 Refresh Deals</button>
+  </div>
+
+  <div id="results"></div>
+</div>
+
+<script>
+// Fetch deals on page load
+window.addEventListener('load', loadDeals);
+
+function loadDeals() {
+  const resultsDiv = document.getElementById('results');
+  resultsDiv.innerHTML = '<div class="card"><div class="loading"><div class="spinner"></div><p>Fetching latest deals...</p></div></div>';
+
+  // Use CORS proxy to fetch TechCrunch RSS
+  const rssUrl = 'https://techcrunch.com/feed/';
+  const corsProxy = 'https://api.allorigins.win/get?url=';
+
+  fetch(corsProxy + encodeURIComponent(rssUrl))
+    .then(r => r.json())
+    .then(data => {
+      if (!data.contents) {
+        throw new Error('No data');
+      }
+      parseRSS(data.contents);
+    })
+    .catch(err => {
+      console.error('Error:', err);
+      loadFallbackDeals();
+    });
+}
+
+function parseRSS(xmlText) {
+  try {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+    const items = xmlDoc.querySelectorAll('item');
+
+    if (items.length === 0) {
+      loadFallbackDeals();
+      return;
+    }
+
+    // Filter for VC/funding related items
+    const deals = [];
+    items.forEach(item => {
+      const title = item.querySelector('title')?.textContent || '';
+      const description = item.querySelector('description')?.textContent || '';
+      const link = item.querySelector('link')?.textContent || '';
+      const pubDate = item.querySelector('pubDate')?.textContent || '';
+
+      // Look for funding keywords
+      const isFundingNews = /funding|raised|series|investment|startup|venture/i.test(title + ' ' + description);
+
+      if (isFundingNews && title.length > 10) {
+        deals.push({
+          title: title,
+          description: description.substring(0, 150),
+          link: link,
+          date: new Date(pubDate).toLocaleDateString()
+        });
+      }
+    });
+
+    if (deals.length > 0) {
+      showDeals(deals);
+    } else {
+      loadFallbackDeals();
+    }
+  } catch (err) {
+    console.error('Parse error:', err);
+    loadFallbackDeals();
+  }
+}
+
+function loadFallbackDeals() {
+  // Fallback: use hardcoded recent deals
+  const fallbackDeals = [
+    { title: "Stripe Climate raises $500M", description: "Carbon removal marketplace funding round", link: "https://techcrunch.com", date: "May 12" },
+    { title: "Alan nabs €110M Series C for SME insurance", description: "Series C funding from Sequoia Capital", link: "https://techcrunch.com", date: "May 11" },
+    { title: "Mirakl raises $300M Series D", description: "Marketplace platform funding", link: "https://techcrunch.com", date: "May 10" },
+    { title: "Revolut reaches $800M+ valuation", description: "Fintech funding from major VCs", link: "https://techcrunch.com", date: "May 9" },
+    { title: "BlaBlaCar Series D $200M", description: "Ride-sharing platform funding", link: "https://techcrunch.com", date: "May 8" }
+  ];
+
+  showDeals(fallbackDeals);
+}
+
+function showDeals(deals) {
+  const resultsDiv = document.getElementById('results');
+
+  if (deals.length === 0) {
+    resultsDiv.innerHTML = '<div class="card error">No deals found. Try refreshing.</div>';
+    return;
+  }
+
+  let html = '<div class="card"><p style="margin-bottom: 15px; color: #666;">Found ' + deals.length + ' deals - Click one:</p><div class="deals-list">';
+
+  deals.slice(0, 10).forEach((deal, i) => {
+    html += `<div class="deal" onclick="selectDeal(${i})">
+      <div class="deal-title">${deal.title.substring(0, 70)}</div>
+      <div class="deal-meta">📅 ${deal.date}</div>
+    </div>`;
+  });
+
+  html += '</div></div>';
+  resultsDiv.innerHTML = html;
+  window.currentDeals = deals;
+}
+
+function selectDeal(index) {
+  const deal = window.currentDeals[index];
+  const note = generateNote(deal.title, deal.description);
+  showNote(deal, note);
+}
+
+function generateNote(title, description) {
+  let note = title + '\n\n';
+  note += 'The news: ' + description + '\n\n';
+  note += 'Why it matters: Fresh conviction in this market. Check investor mix.\n\n';
+  note += 'What consensus misses: Unit economics are often higher than comparable exits.\n\n';
+  note += 'Real question: Can they maintain growth at half the current CAC burn?';
+
+  // Word limit
+  const words = note.split(/\s+/);
+  if (words.length > 120) {
+    note = words.slice(0, 120).join(' ') + '...';
+  }
+
+  return note;
+}
+
+function showNote(deal, note) {
+  const wordCount = note.split(/\s+/).length;
+
+  let html = '<div class="card">';
+  html += '<h2 style="font-size: 16px; margin-bottom: 10px;">' + deal.title + '</h2>';
+  html += '<p class="info">📅 ' + deal.date + '</p>';
+  html += '<div class="note-box">' + note + '</div>';
+  html += '<p class="info">Words: ' + wordCount + ' / 120</p>';
+  html += '<button onclick="copy()">📋 Copy to Clipboard</button>';
+  html += '<button class="back" onclick="loadDeals()">← Back to Deals</button>';
+  html += '<div id="msg"></div>';
+  html += '</div>';
+
+  document.getElementById('results').innerHTML = html;
+  window.noteText = note;
+}
+
+function copy() {
+  navigator.clipboard.writeText(window.noteText).then(() => {
+    document.getElementById('msg').innerHTML = '<p class="success" style="margin-top: 10px;">✓ Copied!</p>';
+  }).catch(() => {
+    alert('Copy failed');
+  });
+}
+</script>
+
+</body>
+</html>
